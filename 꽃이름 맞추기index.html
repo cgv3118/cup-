@@ -1,0 +1,342 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>꽃 이름 퀴즈 게임</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font (Tailwind default) -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #eaf7e6; /* 연한 녹색 계열 배경 */
+        }
+        .btn-option {
+            transition: all 0.1s ease;
+            filter: brightness(1);
+        }
+        .btn-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            filter: brightness(1.05);
+        }
+        .correct {
+            background-color: #38a169 !important; /* 녹색 */
+            color: white !important;
+            box-shadow: 0 0 15px rgba(56, 161, 105, 0.8);
+        }
+        .incorrect {
+            background-color: #e53e3e !important; /* 빨간색 */
+            color: white !important;
+            box-shadow: 0 0 15px rgba(229, 62, 62, 0.8);
+        }
+        #flower-image {
+            width: 100%;
+            height: 250px; /* 고정 높이 */
+            object-fit: cover; /* 이미지가 잘리지 않게 채움 */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="w-full max-w-lg bg-white p-6 md:p-10 rounded-2xl shadow-2xl border-4 border-emerald-500">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-center text-emerald-700 mb-6 border-b-4 pb-3 border-emerald-100">
+            🌿 생화 느낌! 꽃 이름 퀴즈 🌷
+        </h1>
+
+        <!-- 게임 시작/종료 화면 -->
+        <div id="start-screen" class="text-center">
+            <p class="text-lg mb-8 text-gray-700">총 10문제를 풀어보며 아름다운 꽃들의 이름을 맞춰보세요!</p>
+            <button id="start-button" class="w-full py-4 bg-emerald-600 text-white text-xl font-bold rounded-xl hover:bg-emerald-700 transition duration-300 shadow-lg transform hover:scale-[1.01]">
+                START (10문제)
+            </button>
+        </div>
+        
+        <!-- 퀴즈 화면 -->
+        <div id="quiz-screen" class="hidden">
+            <!-- 질문 번호 -->
+            <p id="question-number" class="text-center text-xl font-bold text-emerald-600 mb-4"></p>
+            
+            <!-- 꽃 표시 영역: 이미지와 힌트 -->
+            <div id="flower-display" class="relative flex flex-col items-center justify-center p-3 bg-emerald-50 rounded-xl mb-6 shadow-xl border border-emerald-200 overflow-hidden">
+                <img id="flower-image" class="rounded-lg mb-4 shadow-md" alt="꽃 사진" />
+                <!-- 이미지 로드 실패 시 대체로 표시될 이모지 -->
+                <div id="flower-emoji" class="text-7xl absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 hidden"></div>
+                <p id="flower-hint" class="text-base text-gray-600 italic mt-2 p-2 bg-white/70 rounded-md"></p>
+            </div>
+
+            <!-- 선택지 버튼 영역 (체크 방식) -->
+            <div id="options-container" class="grid grid-cols-2 gap-4">
+                <!-- 옵션 버튼들이 여기에 추가됩니다 -->
+            </div>
+
+            <!-- 메시지 및 점수 -->
+            <div class="mt-6 text-center">
+                <p id="message" class="font-bold text-xl mb-2 h-7"></p>
+                <p id="score-display" class="text-2xl font-extrabold text-gray-800"></p>
+            </div>
+
+            <!-- 다음 문제/재시작 버튼 -->
+            <button id="next-button" class="hidden w-full mt-6 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition duration-300">
+                다음 문제로 (➡️)
+            </button>
+            <button id="restart-button" class="hidden w-full mt-6 py-3 bg-indigo-500 text-white font-bold rounded-xl hover:bg-indigo-600 transition duration-300">
+                다시 시작 (🔁)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // -----------------------
+        // 데이터 및 전역 변수
+        // -----------------------
+
+        // 총 12개의 꽃 데이터 (문제 수 10개를 위해 섞어 사용)
+        const fullFlowerList = [
+            // placehold.co를 사용하여 실제 이미지처럼 보이도록 설정 (생화 느낌)
+            { name: "장미", emoji: "🌹", hint: "사랑과 정열의 상징", img: "https://placehold.co/600x400/B22222/FFFFFF/png?text=Red+Rose" },
+            { name: "튤립", emoji: "🌷", hint: "네덜란드가 유명하며 색깔이 다양함", img: "https://placehold.co/600x400/ff69b4/FFFFFF/png?text=Pink+Tulip" },
+            { name: "해바라기", emoji: "🌻", hint: "항상 태양을 따라 움직이는 꽃", img: "https://placehold.co/600x400/FFD700/000000/png?text=Sunflower" },
+            { name: "무궁화", emoji: "🌺", hint: "우리나라의 나라 꽃", img: "https://placehold.co/600x400/E0BBE4/000000/png?text=Hibiscus" },
+            { name: "백합", emoji: "🌼", hint: "순결과 고귀함을 상징하며 흰색이 많음", img: "https://placehold.co/600x400/FFFFFF/000000/png?text=White+Lily" },
+            { name: "국화", emoji: "🏵️", hint: "가을에 피며 동양에서 많이 사랑받는 꽃", img: "https://placehold.co/600x400/FFA500/000000/png?text=Chrysanthemum" },
+            { name: "수국", emoji: "💙", hint: "색이 변하는 풍성한 여름 꽃", img: "https://placehold.co/600x400/4682B4/FFFFFF/png?text=Blue+Hydrangea" },
+            { name: "프리지아", emoji: "💛", hint: "졸업식에 많이 쓰이는 향기로운 꽃", img: "https://placehold.co/600x400/FFFF00/000000/png?text=Freesia" },
+            { name: "라일락", emoji: "💜", hint: "보랏빛의 달콤한 향기가 나는 꽃", img: "https://placehold.co/600x400/9400D3/FFFFFF/png?text=Lilac" },
+            { name: "벚꽃", emoji: "🌸", hint: "봄에 온 세상을 하얗게 만드는 꽃", img: "https://placehold.co/600x400/FFC0CB/000000/png?text=Cherry+Blossom" },
+            { name: "카네이션", emoji: "🎀", hint: "어버이날에 감사와 사랑을 전하는 꽃", img: "https://placehold.co/600x400/FF4500/FFFFFF/png?text=Carnation" },
+            { name: "데이지", emoji: "⚪", hint: "작고 앙증맞은 꽃으로 희망을 상징함", img: "https://placehold.co/600x400/FAFAD2/000000/png?text=Daisy" }
+        ];
+        
+        // DOM 요소
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const startButton = document.getElementById('start-button');
+        const flowerImage = document.getElementById('flower-image'); // 이미지 요소
+        const flowerEmoji = document.getElementById('flower-emoji'); // 이모지 요소
+        const flowerHint = document.getElementById('flower-hint');
+        const optionsContainer = document.getElementById('options-container');
+        const questionNumberEl = document.getElementById('question-number');
+        const messageEl = document.getElementById('message');
+        const scoreDisplay = document.getElementById('score-display');
+        const nextButton = document.getElementById('next-button');
+        const restartButton = document.getElementById('restart-button');
+
+        // 게임 상태
+        let shuffledFlowers = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        const totalQuestions = 10; // 문제 수를 10개로 설정
+        let isAnswered = false;
+
+        // -----------------------
+        // 유틸리티 함수
+        // -----------------------
+
+        /**
+         * 배열을 섞는 함수 (Fisher-Yates 알고리즘)
+         * @param {Array} array 섞을 배열
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // -----------------------
+        // 게임 로직 함수
+        // -----------------------
+
+        /**
+         * 게임을 초기화하고 시작합니다.
+         */
+        function startGame() {
+            // 게임 상태 초기화
+            currentQuestionIndex = 0;
+            score = 0;
+            isAnswered = false;
+            
+            // 전체 꽃 목록을 섞고, 필요한 문제 수(10개)만큼만 자릅니다.
+            shuffledFlowers = shuffleArray([...fullFlowerList]);
+            if (shuffledFlowers.length > totalQuestions) {
+                shuffledFlowers = shuffledFlowers.slice(0, totalQuestions);
+            } else if (shuffledFlowers.length < totalQuestions) {
+                // 데이터가 10개 미만일 경우에 대한 처리
+                console.warn(`Warning: Not enough unique flowers (${shuffledFlowers.length}) for 10 questions.`);
+            }
+            
+            // 화면 전환
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            scoreDisplay.textContent = `현재 점수: 0점`;
+
+            loadQuestion();
+        }
+
+        /**
+         * 현재 순서의 퀴즈를 화면에 표시합니다.
+         */
+        function loadQuestion() {
+            if (currentQuestionIndex >= totalQuestions) {
+                endGame();
+                return;
+            }
+
+            isAnswered = false;
+            
+            // 버튼 및 메시지 초기화
+            optionsContainer.innerHTML = '';
+            messageEl.textContent = '';
+            messageEl.classList.remove('text-red-500', 'text-green-600', 'text-blue-600');
+            nextButton.classList.add('hidden');
+            restartButton.classList.add('hidden');
+
+            const currentFlower = shuffledFlowers[currentQuestionIndex];
+            
+            // 질문 번호 업데이트
+            questionNumberEl.textContent = `문제 ${currentQuestionIndex + 1} / ${totalQuestions}`;
+
+            // 꽃 이미지 및 힌트 표시
+            flowerImage.src = currentFlower.img;
+            flowerImage.alt = `${currentFlower.name} 이미지`;
+            flowerEmoji.textContent = currentFlower.emoji; // 이모지는 배경에 숨겨둠 (이미지 로드 실패 대비)
+            
+            // 이미지 로드 실패 시 이모지 표시
+            flowerImage.onerror = () => {
+                flowerImage.classList.add('hidden');
+                flowerEmoji.classList.remove('hidden');
+            };
+            
+            // 이미지 로드 성공 시 이모지 숨김
+            flowerImage.onload = () => {
+                flowerImage.classList.remove('hidden');
+                flowerEmoji.classList.add('hidden');
+            };
+
+            flowerHint.textContent = `힌트: ${currentFlower.hint}`;
+
+            // 1. 정답과 오답 후보 3개를 준비합니다.
+            const correctName = currentFlower.name;
+            
+            // 전체 꽃 이름 중에서 정답을 제외한 나머지 목록을 만듭니다.
+            const wrongCandidates = fullFlowerList
+                .filter(flower => flower.name !== correctName)
+                .map(flower => flower.name);
+
+            // 오답 3개를 무작위로 선택합니다.
+            const shuffledWrong = shuffleArray(wrongCandidates).slice(0, 3);
+
+            // 최종 옵션 배열을 만들고 섞습니다.
+            const options = shuffleArray([correctName, ...shuffledWrong]);
+
+            // 2. 옵션 버튼들을 생성하고 표시합니다.
+            options.forEach(name => {
+                const button = document.createElement('button');
+                button.textContent = name;
+                button.classList.add(
+                    'btn-option', 
+                    'py-4', 'px-4', 'bg-emerald-100', 'text-emerald-800', 
+                    'font-bold', 'rounded-xl', 'shadow-md', 
+                    'hover:bg-emerald-200', 'transition', 'duration-150', 'text-lg'
+                );
+                button.dataset.name = name;
+                // 클릭 시 정답을 체크하는 함수 호출
+                button.addEventListener('click', () => checkAnswer(name, correctName, button));
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        /**
+         * 사용자의 정답을 확인합니다.
+         * @param {string} chosenName 사용자가 선택한 꽃 이름
+         * @param {string} correctName 정답 꽃 이름
+         * @param {HTMLElement} clickedButton 클릭된 버튼 요소
+         */
+        function checkAnswer(chosenName, correctName, clickedButton) {
+            if (isAnswered) return; // 이미 답변했으면 무시
+            isAnswered = true;
+
+            const allButtons = optionsContainer.querySelectorAll('.btn-option');
+            
+            // 모든 버튼 비활성화
+            allButtons.forEach(btn => btn.disabled = true);
+
+            if (chosenName === correctName) {
+                // 정답 처리
+                score += 1;
+                messageEl.textContent = "✨ 정답입니다! ✨";
+                messageEl.classList.remove('text-red-500');
+                messageEl.classList.add('text-green-600');
+                clickedButton.classList.add('correct');
+            } else {
+                // 오답 처리
+                messageEl.textContent = `😭 아쉽네요! 정답은 '${correctName}' 입니다.`;
+                messageEl.classList.remove('text-green-600');
+                messageEl.classList.add('text-red-500');
+                clickedButton.classList.add('incorrect');
+                
+                // 정답 버튼 표시
+                allButtons.forEach(btn => {
+                    if (btn.dataset.name === correctName) {
+                        btn.classList.add('correct'); 
+                    }
+                });
+            }
+
+            scoreDisplay.textContent = `현재 점수: ${score} / ${totalQuestions} 점`;
+            
+            // 다음 문제 버튼 표시 (마지막 문제가 아닐 경우)
+            if (currentQuestionIndex < totalQuestions - 1) {
+                nextButton.classList.remove('hidden');
+            } else {
+                // 마지막 문제면 재시작 버튼 표시
+                restartButton.classList.remove('hidden');
+                nextButton.classList.add('hidden');
+            }
+        }
+
+        /**
+         * 게임을 종료하고 최종 결과를 표시합니다.
+         */
+        function endGame() {
+            questionNumberEl.textContent = `🏆 최종 결과 🏆`;
+            flowerImage.classList.add('hidden');
+            flowerEmoji.textContent = '💯';
+            flowerEmoji.classList.remove('hidden');
+            flowerHint.textContent = '';
+            optionsContainer.innerHTML = '';
+            
+            messageEl.textContent = `총 10문제 중 ${score}점을 획득하셨습니다!`;
+            messageEl.classList.remove('text-red-500', 'text-green-600');
+            messageEl.classList.add('text-blue-600');
+            scoreDisplay.textContent = `정답률: ${((score / totalQuestions) * 100).toFixed(1)}%`;
+            
+            nextButton.classList.add('hidden');
+            restartButton.classList.remove('hidden');
+        }
+
+        /**
+         * 다음 문제로 넘어갑니다.
+         */
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // -----------------------
+        // 이벤트 리스너 설정
+        // -----------------------
+
+        startButton.addEventListener('click', startGame);
+        nextButton.addEventListener('click', nextQuestion);
+        restartButton.addEventListener('click', startGame); 
+        
+    </script>
+
+</body>
+</html>
